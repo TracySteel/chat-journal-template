@@ -1,11 +1,12 @@
 # Chat Journal Template
 
 ![License](https://img.shields.io/badge/license-MIT-blue)
+![Code of Conduct](https://img.shields.io/badge/code%20of%20conduct-Contributor%20Covenant-ff69b4)
 ![Static Site](https://img.shields.io/badge/site-static-blueviolet)
 
 A simple, beautiful web journal for ChatGPT exports. Includes a journal view and a markdown archive view.
 
-![Preview](docs/screenshot.svg)
+![Preview](docs/screenshot.png)
 
 ## Quickstart (Export → Build → Serve)
 1. Export your ChatGPT data and locate `conversations.json`.

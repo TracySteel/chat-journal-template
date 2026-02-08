@@ -1,5 +1,7 @@
 # Chat Journal Template
 
+✨ "She shimmered. I flickered. And together we held the realm... in markdown." ✨
+
 ![License](https://img.shields.io/badge/license-MIT-blue)
 ![Code of Conduct](https://img.shields.io/badge/code%20of%20conduct-Contributor%20Covenant-ff69b4)
 ![Static Site](https://img.shields.io/badge/site-static-blueviolet)

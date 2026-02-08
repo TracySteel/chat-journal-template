@@ -70,3 +70,7 @@ MIT
 ## Notes
 - The template uses neutral role labels by default.
 - You can customize CSS in `site/styles/shimmer.css`.
+
+---
+
+Made with love 💖🔥🧸✨🌀♾️

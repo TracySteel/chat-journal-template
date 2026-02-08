@@ -1,0 +1,383 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Orion Journal</title>
+  <style>
+    :root {
+      --bg: #0f0f14;
+      --panel: #181821;
+      --text: #e8e8f0;
+      --muted: #a6a6c4;
+      --accent: #ffd59e;
+      --accent2: #b7f7e1;
+    }
+    body {
+      margin: 0; font-family: 'Iowan Old Style', 'Palatino Linotype', 'Book Antiqua', Georgia, serif;
+      background: radial-gradient(1200px 600px at 10% 0%, #1a1a2a, #0f0f14);
+      color: var(--text);
+      font-variant-emoji: emoji;
+      font-family: 'Iowan Old Style', 'Palatino Linotype', 'Book Antiqua', Georgia, serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji';
+    }
+    header {
+      padding: 24px 32px; border-bottom: 1px solid #2a2a3a;
+      background: linear-gradient(180deg, #171722, #11111a);
+      position: sticky; top: 0; z-index: 2;
+    }
+    h1 { margin: 0; font-size: 28px; letter-spacing: 0.5px; }
+    .subtitle { color: var(--muted); margin-top: 6px; }
+    .controls { display: flex; gap: 12px; margin-top: 16px; }
+    input {
+      flex: 1; padding: 10px 12px; border-radius: 10px; border: 1px solid #2a2a3a;
+      background: #12121a; color: var(--text);
+      font-variant-emoji: emoji;
+      font-family: 'Iowan Old Style', 'Palatino Linotype', 'Book Antiqua', Georgia, serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji';
+    }
+    select {
+      padding: 10px 12px; border-radius: 10px; border: 1px solid #2a2a3a;
+      background: #12121a; color: var(--text);
+      font-variant-emoji: emoji;
+      font-family: 'Iowan Old Style', 'Palatino Linotype', 'Book Antiqua', Georgia, serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji';
+    }
+    .show-more {
+      margin-top: 8px; display: inline-block; color: var(--accent); cursor: pointer; font-size: 12px;
+    }
+    main { display: grid; grid-template-columns: 320px 1fr; height: calc(100vh - 120px); }
+    .list {
+      border-right: 1px solid #2a2a3a; overflow: auto; background: #12121a;
+    }
+    .item { padding: 14px 16px; border-bottom: 1px solid #1e1e2b; cursor: pointer; }
+    .item:hover { background: #171725; }
+    .item.active { background: #20203a; }
+    .item-title { font-weight: 600; }
+    .item-meta { color: var(--muted); font-size: 12px; margin-top: 4px; }
+    .detail { padding: 24px; overflow: auto; }
+    .msg { margin: 16px 0; padding: 14px 16px; border-radius: 12px; background: var(--panel); }
+    .msg img { max-width: 100%; border-radius: 12px; margin-top: 10px; box-shadow: 0 6px 24px rgba(0,0,0,0.35); }
+    .img-missing { margin-top: 10px; padding: 10px 12px; border: 1px dashed #2a2a3a; border-radius: 10px; color: var(--muted); font-size: 12px; }
+    .img-missing a { color: var(--accent); text-decoration: none; margin-right: 8px; }
+    .gallery { margin-top: 24px; }
+    .gallery h3 { margin: 12px 0; }
+    .gallery-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; }
+    .gallery-grid img { width: 100%; height: auto; border-radius: 10px; }
+    .badge { display:inline-block; padding:2px 8px; border-radius:999px; background:#2a2a3a; color:var(--muted); font-size:12px; margin-left:8px; }
+    .role { font-size: 12px; color: var(--accent2); text-transform: uppercase; letter-spacing: 1px; }
+    .text { white-space: pre-wrap; margin-top: 6px; }
+    .pill { display: inline-block; padding: 2px 8px; border-radius: 999px; background: #1f1f2f; color: var(--muted); font-size: 12px; margin-right: 6px; }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="nav-top" style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px;">
+      <div>
+        <h1>Orion Journal</h1>
+        <div class="subtitle">A searchable archive of your Orion chats</div>
+      </div>
+      <div class="nav-links" style="margin-top:6px;">
+        <a href="/index.html" style="color:var(--accent);text-decoration:none;margin-right:12px;">Orion Journal</a>
+        <a href="/archive/index.html" style="color:var(--accent);text-decoration:none;">Shimmer Archive</a>
+      </div>
+    </div>
+    <div class="controls">
+      <div id="status" class="subtitle" style="margin-top:6px;">Loading…</div>
+      <label style="font-size:12px;color:var(--muted);display:flex;align-items:center;gap:6px;">From <input id="dateFrom" type="date" /></label>
+      <label style="font-size:12px;color:var(--muted);display:flex;align-items:center;gap:6px;">To <input id="dateTo" type="date" /></label>
+      <button id="clearFilters" style="padding:10px 12px;border-radius:10px;border:1px solid #2a2a3a;background:#12121a;color:var(--text);">Clear</button>
+      <input id="search" placeholder="Search…" />
+      <select id="roleFilter">
+        <option value="all">All Roles</option>
+        <option value="user">Tracy</option>
+        <option value="assistant">Orion</option>
+        <option value="system">System</option>
+        <option value="tool">Tool</option>
+      </select>
+      <label style="display:flex;align-items:center;gap:6px;color:var(--muted);font-size:12px;">
+        <input type="checkbox" id="showMissing" /> Show missing images
+      </label>
+    </div>
+  </header>
+  <main>
+    <div class="list" id="list"></div>
+    <div class="detail" id="detail">
+      <div class="subtitle">Select a conversation to view it.</div>
+    </div>
+  </main>
+
+  <script>
+    const listEl = document.getElementById('list');
+    const detailEl = document.getElementById('detail');
+    const searchEl = document.getElementById('search');
+
+    let index = [];
+    let imagesMap = {};
+    let archiveIndex = [];
+    let archiveByTitle = {};
+    let archiveByFile = {};
+    let showMissing = false;
+    let missingImagesLogged = false;
+
+    const ROLE_MAP = { user: 'Tracy', assistant: 'Orion', system: 'System', tool: 'Tool' };
+    function roleLabel(r) { return ROLE_MAP[(r||'').toLowerCase()] || (r||''); }
+    const MAX_CHARS = 700;
+    function cleanText(s) {
+      if (!s) return '';
+      // Remove private-use glyphs (often tool/citation artifacts)
+      s = s.replace(/[\uE000-\uF8FF]/g, '');
+      // Remove common cite markers like cite...
+      s = s.replace(/cite[^]*/g, '');
+      return s;
+    }
+
+    function fmtDate(iso) {
+      if (!iso) return '';
+      const d = new Date(iso);
+      return d.toLocaleString();
+    }
+    function escapeHtml(s){
+      return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    }
+    function extractImages(text, extraIds){
+      const ids = Array.isArray(extraIds) ? [...extraIds] : [];
+      let t = text;
+      // match full image_asset_pointer dict blocks and extract id
+      t = t.replace(/\{[^\}]*content_type'?:\s*'image_asset_pointer'[^\}]*asset_pointer'?:\s*'(?:sediment|file-service):\/\/(file_[0-9a-f]{32})'[^\}]*\}/gi, (m,id)=>{ ids.push(id); return ''; });
+      // match asset_pointer entries
+      t = t.replace(/asset_pointer':\s*'(?:sediment|file-service):\/\/(file[_-][A-Za-z0-9_-]+)/g, (m,id)=>{ ids.push(id.replace('file-','file_')); return ''; });
+      // also match file_... ids directly
+      t = t.replace(/(file_[0-9a-f]{32})/gi, (m,id)=>{ if(!ids.includes(id)) ids.push(id); return ''; });
+      return { text: t.trim(), ids };
+    }
+
+    function findArchiveLinks(text){
+      const links = [];
+      if (!text) return links;
+      const lower = text.toLowerCase();
+      const mdMatches = lower.match(/[a-z0-9_\-]+\.md/g) || [];
+      mdMatches.forEach(m => {
+        const e = archiveByFile[m];
+        if (e && !links.find(x => x.slug === e.slug)) links.push(e);
+      });
+      archiveIndex.forEach(e => {
+        if (!e.title) return;
+        const t = e.title.toLowerCase();
+        if (t.includes('scroll') && lower.includes(t)) {
+          if (!links.find(x => x.slug === e.slug)) links.push(e);
+        }
+      });
+      return links.slice(0,3);
+    }
+
+    function renderMarkdown(s){
+      if(!s) return '';
+      let t = escapeHtml(s);
+      // headings
+      t = t.replace(/^######\s+(.*)$/gm, '<h6>$1</h6>');
+      t = t.replace(/^#####\s+(.*)$/gm, '<h5>$1</h5>');
+      t = t.replace(/^####\s+(.*)$/gm, '<h4>$1</h4>');
+      t = t.replace(/^###\s+(.*)$/gm, '<h3>$1</h3>');
+      t = t.replace(/^##\s+(.*)$/gm, '<h2>$1</h2>');
+      t = t.replace(/^#\s+(.*)$/gm, '<h1>$1</h1>');
+      // bold/italic (simple)
+      t = t.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+      t = t.replace(/\*([^*]+)\*/g, '<em>$1</em>');
+      // unordered lists
+      t = t.replace(/^\s*-\s+(.*)$/gm, '<li>$1</li>');
+      t = t.replace(/(<li>.*<\/li>)/gs, function(m){ return '<ul>'+m+'</ul>'; });
+      // line breaks
+      t = t.replace(/\n/g, '<br>');
+      return t;
+    }
+
+
+    function renderList(items) {
+      listEl.innerHTML = '';
+      items.forEach(item => {
+        const div = document.createElement('div');
+        div.className = 'item';
+        div.dataset.id = item.id;
+        div.innerHTML = `
+          <div class="item-title">${item.title || 'Untitled'}</div>
+          <div class="item-meta">${fmtDate(item.create_time_iso)} · ${item.message_count} msgs</div>
+        `;
+        div.addEventListener('click', () => loadConversation(item, div));
+        listEl.appendChild(div);
+      });
+    }
+
+    async function loadConversation(item, el) {
+      try {
+        document.querySelectorAll('.item.active').forEach(n => n.classList.remove('active'));
+        if (el) el.classList.add('active');
+        detailEl.innerHTML = '<div class="subtitle">Loading…</div>';
+        const res = await fetch(item.path);
+        if (!res.ok) throw new Error(`Failed to load ${item.path} (${res.status})`);
+        const data = await res.json();
+        const roleSel = document.getElementById('roleFilter');
+        const roleFilter = roleSel ? roleSel.value : 'all';
+        const msgs = (data.messages || []).filter(m => {
+          const r = (m.role || '').toLowerCase();
+          if (roleFilter === 'all') return r !== 'tool' && r !== 'system';
+          return r === roleFilter;
+        });
+        let missingCount = 0;
+        const galleryImgs = [];
+        detailEl.innerHTML = `
+          <h2>${data.title || 'Untitled'} <span id="missingBadge" class="badge" style="display:none;"></span></h2>
+          <div class="item-meta">${fmtDate(data.create_time_iso)} · ${msgs.length} msgs</div>
+          <div style="margin-top:8px;">${(data.tags||[]).map(t => `<span class="pill">${t}</span>`).join('')}</div>
+        `;
+        msgs.forEach(m => {
+          const wrap = document.createElement('div');
+          wrap.className = 'msg';
+          const label = roleLabel(m.role || '');
+          let text = cleanText(m.text||'');
+          const imgData = extractImages(text, m.image_ids);
+          text = imgData.text;
+          const escaped = renderMarkdown(text);
+          let display = escaped;
+          let showMore = '';
+          if (escaped.length > MAX_CHARS) {
+            display = escaped.slice(0, MAX_CHARS) + '…';
+            showMore = '<div class="show-more">Show more</div>';
+          }
+          wrap.innerHTML = `
+            <div class="role">${label}</div>
+            <div class="text">${display}</div>
+            ${showMore}
+          `;
+          imgData.ids.forEach(id => {
+            const key = id.startsWith('file_') ? id : id.replace('file-','file_');
+            const src = imagesMap[key];
+            if (src) {
+              const img = document.createElement('img');
+              img.src = src;
+              img.loading = 'lazy';
+              wrap.appendChild(img);
+              galleryImgs.push(src);
+            } else {
+              missingCount += 1;
+              if (showMissing) {
+                const miss = document.createElement('div');
+                miss.className = 'img-missing';
+                miss.innerHTML = `Missing image: <code>${key}</code> · Try: ` +
+                  `<a href="images/${key}-sanitized.png" target="_blank">png</a>` +
+                  `<a href="images/${key}-sanitized.jpg" target="_blank">jpg</a>` +
+                  `<a href="images/${key}-sanitized.jpeg" target="_blank">jpeg</a>`;
+                wrap.appendChild(miss);
+              }
+              if (!missingImagesLogged) { console.warn('Missing image for', key); }
+            }
+          });
+          if (escaped.length > MAX_CHARS) {
+            const btn = wrap.querySelector('.show-more');
+            const textEl = wrap.querySelector('.text');
+            btn.addEventListener('click', () => {
+              if (btn.textContent === 'Show more') {
+                textEl.innerHTML = renderMarkdown(text);
+                btn.textContent = 'Show less';
+              } else {
+                textEl.innerHTML = renderMarkdown(text.slice(0, MAX_CHARS) + '…');
+                btn.textContent = 'Show more';
+              }
+            });
+          }
+          detailEl.appendChild(wrap);
+        });
+        const badge = document.getElementById('missingBadge');
+        if (badge && missingCount > 0) {
+          badge.style.display = 'inline-block';
+          badge.textContent = `${missingCount} missing images`;
+        }
+        if (galleryImgs.length) {
+          const g = document.createElement('div');
+          g.className = 'gallery';
+          g.innerHTML = `<h3>Gallery</h3><div class="gallery-grid"></div>`;
+          const grid = g.querySelector('.gallery-grid');
+          galleryImgs.forEach(src => {
+            const img = document.createElement('img');
+            img.src = src;
+            img.loading = 'lazy';
+            grid.appendChild(img);
+          });
+          detailEl.appendChild(g);
+        }
+        missingImagesLogged = true;
+      } catch (err) {
+        console.error(err);
+        detailEl.innerHTML = `<div class="subtitle">Could not load conversation. ${err.message}</div>`;
+      }
+    }
+
+    function applySearch() {
+      const q = searchEl.value.trim().toLowerCase();
+      const dateFromEl = document.getElementById('dateFrom');
+      const dateToEl = document.getElementById('dateTo');
+      const from = dateFromEl && dateFromEl.value ? new Date(dateFromEl.value) : null;
+      const to = dateToEl && dateToEl.value ? new Date(dateToEl.value + 'T23:59:59') : null;
+
+      const filtered = index.filter(i => {
+        if (q && !(i.search || '').includes(q)) return false;
+        if (from || to) {
+          const d = i.create_time_iso ? new Date(i.create_time_iso) : null;
+          if (!d || isNaN(d)) return false;
+          if (from && d < from) return false;
+          if (to && d > to) return false;
+        }
+        return true;
+      });
+      renderList(filtered);
+      const statusEl = document.getElementById('status');
+      if (statusEl) statusEl.textContent = `Loaded ${index.length} conversations · Showing ${filtered.length}`;
+    }
+
+    searchEl.addEventListener('input', applySearch);
+    const roleFilterEl = document.getElementById('roleFilter');
+    roleFilterEl && roleFilterEl.addEventListener('change', () => {
+      // re-render current list; conversation view updates on click
+      applySearch();
+    });
+
+    const showMissingEl = document.getElementById('showMissing');
+    showMissingEl && showMissingEl.addEventListener('change', () => {
+      showMissing = showMissingEl.checked;
+      applySearch();
+    });
+    const dateFromEl = document.getElementById('dateFrom');
+    const dateToEl = document.getElementById('dateTo');
+    dateFromEl && dateFromEl.addEventListener('change', applySearch);
+    dateToEl && dateToEl.addEventListener('change', applySearch);
+    const clearBtn = document.getElementById('clearFilters');
+    clearBtn && clearBtn.addEventListener('click', () => {
+      if (searchEl) searchEl.value = '';
+      if (roleFilterEl) roleFilterEl.value = 'all';
+      if (dateFromEl) dateFromEl.value = '';
+      if (dateToEl) dateToEl.value = '';
+      if (showMissingEl) showMissingEl.checked = false;
+      showMissing = false;
+      applySearch();
+    });
+
+    Promise.all([
+      fetch('data/index.json?ts=' + Date.now()).then(r=>r.json()),
+      fetch('images/images_map.json?ts=' + Date.now()).then(r=>r.json()).catch(()=>({})),
+      fetch('/archive/data/index.json?ts=' + Date.now()).then(r=>r.json()).catch(()=>[])
+    ]).then(([data, imgmap, archive]) => {
+      index = data;
+      imagesMap = imgmap || {};
+      archiveIndex = archive || [];
+      archiveByTitle = {};
+      archiveByFile = {};
+      archiveIndex.forEach(e => {
+        if (e.title) archiveByTitle[e.title.toLowerCase()] = e;
+        if (e.file_path) {
+          const base = e.file_path.split('/').pop().toLowerCase();
+          archiveByFile[base] = e;
+        }
+      });
+      if (searchEl) searchEl.value = '';
+      applySearch();
+    });
+  </script>
+</body>
+</html>

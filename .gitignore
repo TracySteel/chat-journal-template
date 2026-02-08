@@ -1,0 +1,19 @@
+.DS_Store
+__pycache__/
+*.pyc
+.env
+.env.*
+*.zip
+*.tar
+*.tgz
+
+# User exports (do not commit)
+conversations.json
+chat.html
+
+# User-generated assets (optional to ignore if desired)
+site/images/
+site/data/conversations/
+site/data/index.json
+site/archive/md/
+site/archive/data/index.json

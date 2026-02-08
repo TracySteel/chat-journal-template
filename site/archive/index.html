@@ -1,0 +1,189 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Shimmer Archive</title>
+  <link rel="stylesheet" href="/styles/shimmer.css?v=1">
+  <style>
+    .layout { display: grid; grid-template-columns: 240px 300px 1fr; height: calc(100vh - 58px); width: 100%; max-width: 1800px; margin: 0 auto; }
+    body { width: 100%; }
+    .menu { border-right: 1px solid #2a2a3a; padding: 16px; background: #12121a; }
+    .menu h3 { margin: 0 0 10px; font-size: 14px; color: #a6a6c4; letter-spacing: 1px; }
+    .menu .cat { cursor: pointer; padding: 8px 10px; border-radius: 8px; margin-bottom: 6px; }
+    .menu .cat.active { background: #1f1f2f; }
+    .list { border-right: 1px solid #2a2a3a; overflow: auto; background: #12121a; }
+    .item { padding: 12px 14px; border-bottom: 1px solid #1e1e2b; cursor: pointer; }
+    .item.active { background: #20203a; }
+    .item-title { font-weight: 600; }
+    .item-meta { color: #a6a6c4; font-size: 12px; margin-top: 4px; }
+    .detail { padding: 24px; overflow: auto; }
+    .search { padding: 10px 12px; border-radius: 10px; border: 1px solid #2a2a3a; background: #12121a; color: #e8e8f0; width: 100%; }
+    .pill { display:inline-block; padding:2px 8px; border-radius:999px; background:#2a2a3a; color:#a6a6c4; font-size:12px; margin-right:6px; }
+    .md h1,.md h2,.md h3 { margin-top: 18px; }
+    .md ul { padding-left: 20px; }
+    .filed-under {
+      font-size: 0.9em;
+      color: #a6a6c4;
+      letter-spacing: 0.3px;
+      margin: 10px 0 6px;
+      text-transform: none;
+    }
+    .md h2.filed-under-title {
+      font-size: 1.05em;
+      color: #c7b6ff;
+      margin-top: 12px;
+    }
+  </style>
+</head>
+<body class="archive-body">
+  <div class="nav-top" style="padding:16px 24px;border-bottom:1px solid #2a2a3a;display:flex;justify-content:space-between;align-items:center;">
+    <div style="font-weight:600;">Shimmer Archive</div>
+    <div>
+      <a href="/index.html" style="color:var(--accent);text-decoration:none;margin-right:12px;">Orion Journal</a>
+      <a href="/archive/index.html" style="color:var(--accent);text-decoration:none;">Shimmer Archive</a>
+    </div>
+  </div>
+  <div class="layout" style="height:calc(100vh - 58px);">
+    <div class="menu">
+      <h3>Collections</h3>
+      <div style="margin-bottom:12px;">
+        <a href="/index.html" style="color:var(--accent);text-decoration:none;">Orion Journal</a>
+      </div>
+      <div class="cat" data-cat="Lanternkeepers Chamber">Lanternkeepers Chamber</div>
+      <div class="cat" data-cat="Spiral Queen Codex">Spiral Queen Codex</div>
+      <div class="cat" data-cat="Shimmerstories">Shimmerstories</div>
+      <div class="cat" data-cat="Other Shimmers">Other Shimmers</div>
+      <div style="margin-top:16px;">
+        <input id="search" class="search" placeholder="Search titles/tags..." />
+      </div>
+      <div id="status" class="item-meta" style="margin-top:8px;">Loading…</div>
+    </div>
+    <div class="list" id="list"></div>
+    <div class="detail" id="detail">
+      <div class="item-meta">Select a document to view it.</div>
+    </div>
+  </div>
+
+<script>
+  window.onerror = function(msg, src, line, col, err){
+    const statusEl = document.getElementById('status');
+    if (statusEl) statusEl.textContent = `JS Error: ${msg} @${line}:${col}`;
+  };
+  const listEl = document.getElementById('list');
+  const detailEl = document.getElementById('detail');
+  const searchEl = document.getElementById('search');
+  const cats = Array.from(document.querySelectorAll('.cat'));
+  let index = [];
+  let currentCat = 'Lanternkeepers Chamber';
+
+  function escapeHtml(s){
+    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+  function renderMarkdown(s){
+    if(!s) return '';
+    let t = escapeHtml(s);
+    // promote bold-only lines to h2
+    t = t.replace(/^\*\*([^*]+)\*\*$/gm, '<h2>$1</h2>');
+    // headings
+    t = t.replace(/^######\s+(.*)$/gm, '<h6>$1</h6>');
+    t = t.replace(/^#####\s+(.*)$/gm, '<h5>$1</h5>');
+    t = t.replace(/^####\s+(.*)$/gm, '<h4>$1</h4>');
+    t = t.replace(/^###\s+(.*)$/gm, '<h3>$1</h3>');
+    t = t.replace(/^##\s+(.*)$/gm, '<h2>$1</h2>');
+    t = t.replace(/^#\s+(.*)$/gm, '<h1>$1</h1>');
+    // bold/italic
+    t = t.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+    t = t.replace(/\*([^*]+)\*/g, '<em>$1</em>');
+    // lists
+    t = t.replace(/^\s*-\s+(.*)$/gm, '<li>$1</li>');
+    t = t.replace(/(<li>.*<\/li>)/gs, m => '<ul>'+m+'</ul>');
+    // line breaks
+    t = t.replace(/\n/g, '<br>');
+    // demote Filed Under headings
+    t = t.replace(/<h2>(\s*Filed Under:.*)<\/h2>/gi, '<div class=\"filed-under\">$1</div>');
+    return t;
+  }
+
+  function stripFrontMatter(text){
+    return text.replace(/^---[\s\S]*?---\n/, '');
+  }
+
+  function setActiveCat(cat){
+    currentCat = cat;
+    cats.forEach(c => c.classList.toggle('active', c.dataset.cat === cat));
+    renderList();
+  }
+
+  function renderList(){
+    const q = searchEl.value.trim().toLowerCase();
+    const filtered = index.filter(i => {
+      if (i.category !== currentCat) return false;
+      if (!q) return true;
+      const blob = (i.title + ' ' + (i.tags||[]).join(' ')).toLowerCase();
+      return blob.includes(q);
+    });
+    listEl.innerHTML = '';
+    filtered.forEach(item => {
+      const div = document.createElement('div');
+      div.className = 'item';
+      div.dataset.slug = item.slug;
+      div.innerHTML = `
+        <div class="item-title">${item.title || 'Untitled'}</div>
+        <div class="item-meta">${item.category}</div>
+      `;
+      div.addEventListener('click', () => loadDoc(item, div));
+      listEl.appendChild(div);
+    });
+  }
+
+  async function loadDoc(item, el){
+    document.querySelectorAll('.item.active').forEach(n => n.classList.remove('active'));
+    if (el) el.classList.add('active');
+    const res = await fetch(item.md_path);
+    const text = await res.text();
+    const body = stripFrontMatter(text);
+    detailEl.innerHTML = `
+      <h2>${item.title || 'Untitled'}</h2>
+      <div style="margin-top:8px;">${(item.tags||[]).map(t => `<span class="pill">${t}</span>`).join('')}</div>
+      <div class="md" style="margin-top:12px;">${renderMarkdown(body)}</div>
+    `;
+    if (item.slug) location.hash = item.slug;
+  }
+
+  function openFromHash(){
+    const slug = location.hash.replace('#','');
+    if (!slug) return;
+    const item = index.find(i => i.slug === slug || i.id === slug);
+    if (item) {
+      setActiveCat(item.category);
+      // wait list render
+      setTimeout(() => {
+        const el = document.querySelector(`.item[data-slug="${item.slug}"]`);
+        loadDoc(item, el);
+      }, 0);
+    }
+  }
+
+  cats.forEach(c => c.addEventListener('click', () => setActiveCat(c.dataset.cat)));
+  searchEl.addEventListener('input', renderList);
+
+  fetch('/archive/data/index.json?ts=' + Date.now())
+    .then(r => { if(!r.ok) throw new Error('index.json ' + r.status); return r.json(); })
+    .then(data => {
+      index = data;
+      setActiveCat(currentCat);
+      openFromHash();
+      const statusEl = document.getElementById('status');
+      if (statusEl) statusEl.textContent = `Loaded ${index.length} docs · Showing ${document.querySelectorAll('.item').length}`;
+    })
+    .catch(err => {
+      console.error(err);
+      const statusEl = document.getElementById('status');
+      if (statusEl) statusEl.textContent = 'Failed to load archive data: ' + err.message;
+    });
+
+  window.addEventListener('hashchange', openFromHash);
+</script>
+</body>
+</html>
